@@ -1,0 +1,58 @@
+========================================================================
+GOOGLE E-TABLOLAR (SHEETS) ENTEGRASYON REHBERİ (GÜNCELLENDİ!)
+Ödüllü Deneme Sınavı Başvuru Formu İçin
+========================================================================
+
+Sayfadaki başvuruların Google E-Tablo'ya düşmemesinin sebebi, önceki kodun ilk kurulum adımı istemesiydi. Şimdi onu tamamen İPTAL edip, hiçbir ayar istemeyen çok daha stabil bir koda geçiyoruz.
+
+LÜTFEN ŞU ADIMLARI İZLEYİN:
+
+ADIM 1: Google E-Tablo'nuza Dönün
+1. Tablonuzdaki Sütun başlıkları şu şekilde olmalıdır (birebir yazın):
+   Tarih | adSoyad | cinsiyet | okulAdi | sinif | veliAdSoyad | telefon | il | ilce | sinavMerkezi | sinavOturumu
+
+ADIM 2: Apps Script (Kod) Ekranını Açın
+1. E-Tablo açıkken üst menüden: Uzantılar > Apps Script tıklayın.
+2. Eğer "Code.gs" içindeki tüm yazıları silip (Önceki kodu dahil), ŞU YENİ KODU YAPIŞTIRIN:
+
+// -- KOD BAŞLANGICI --
+function doPost(e) {
+  try {
+    // Aktif tabloyu ve sayfayı otomatik bulur. (Sekmeniz 'Sayfa1' adında değilse lütfen tablo altından sekme ismini 'Sayfa1' olarak düzeltin)
+    var doc = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = doc.getSheetByName('Sayfa1'); 
+    
+    // Sütun başlıklarını okur
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var nextRow = sheet.getLastRow() + 1;
+    
+    // Gelen verileri başlıklara göre eşleştirir
+    var newRow = headers.map(function(header) {
+      if (header === 'Tarih') {
+        return new Date();
+      } else {
+        // e.parameter web sayfasından gelen HTML FormData'sını yakalar
+        return e.parameter[header] === undefined ? "" : e.parameter[header];
+      }
+    });
+
+    // Kaydı tabloya ekler
+    sheet.getRange(nextRow, 1, 1, newRow.length).setValues([newRow]);
+
+    return ContentService.createTextOutput(JSON.stringify({ "result": "success", "row": nextRow })).setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({ "result": "error", "error": error.toString() })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+// -- KOD SONU --
+
+ADIM 3: EN ÖNEMLİ KISIM (YENİ SÜRÜM YAYINLAMAK)
+Eskiden bir URL almıştınız ancak yaptığımız bu büyük kod değişikliğinin aktif olması için YENİ bir dağıtım (New Version) yapmalıyız. Yoksa Google hep eski kodu çalıştırır ve veriler yine düşmez!
+
+1. Kodu yapıştırdıktan sonra "Kaydet" butonuna (Ctrl+S) basın.
+2. Sağ üstten Mavi MAĞAZA DÜĞMESİ gibi duran "Dağıt (Deploy)" seçeneğine basın ve GEÇMİŞ DAĞITIMLARI YÖNET (Manage Deployments) deyin.
+3. Sol taraftaki listeden aktif Web Uygulamanıza tıklayıp, sağ üstteki KALEM (Düzenle) ikonuna tıklayın.
+4. "Sürüm (Version)" kutusunda "Yeni Sürüm (New Version)"'ü seçin.
+5. "Dağıt" diyin.
+
+BU KADAR! Sitenizdeki (index.html'deki) URL'yi tekrar değiştirmenize BİLE gerek yok! Yeni kod anında devreye girecek ve başvuru attığınız an tabloya kayıtlar şakır şakır akmaya başlayacaktır.
